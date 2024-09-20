@@ -1,1 +1,601 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Feed</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        /* 这里可以添加CSS样式 */
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="user-form">
+           <img src="https://zzhzoe.github.io/InsWebsite/post_images/IMG_0619.PNG" alt="Instagram" class="instagram-logo">
+            <form id="survey-form">
+                <input type="text" id="name" placeholder="NickName" required>
+                <input type="text" id="studentId" placeholder="Student ID" required>
+                <select id="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+                <input type="number" id="age" placeholder="Age" required>
+                <button type="submit">Log In</button>
+            </form>
+        </div>
+
+        <div id="posts" style="display: none;">
+            <!-- Posts will be dynamically added here by JavaScript -->
+        </div>
+
+        <div id="thank-you" style="display: none;">
+            <h2>Thank You for Participating!</h2>
+            <p>Your responses have been recorded.</p>
+        </div>
+
+        <div class="footer" style="display: none;">
+            <button><img src="https://img.icons8.com/ios/50/000000/home--v1.png" alt="Home"></button>
+            <button><img src="https://img.icons8.com/ios/50/000000/search--v1.png" alt="Search"></button>
+            <button><img src="https://img.icons8.com/ios/50/000000/plus-math--v1.png" alt="Add"></button>
+            <button><img src="https://img.icons8.com/ios/50/000000/hearts--v1.png" alt="Likes"></button>
+            <button><img src="https://img.icons8.com/ios/50/000000/user-male-circle--v1.png" alt="Profile"></button>
+        </div>
+    </div>
+
+    <script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC13M47F_4HcP5Z0KPvnPdRs7FCzfwoKus",
+        authDomain: "research-project-0801.firebaseapp.com",
+        projectId: "research-project-0801",
+        storageBucket: "research-project-0801.appspot.com",
+        messagingSenderId: "655922410105",
+        appId: "1:655922410105:web:b0919370054af912261aa8",
+        measurementId: "G-PX7PE1V6S3"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Global variables
+    let currentPage = 'user-form';
+    let userData = {};
+    let postViewTimes = {};
+    let startTime;
+    let postDataCache = {};
+    const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
+    const VISIBILITY_THRESHOLD = 50; // Percentage of post that needs to be visible
+    const UPDATE_INTERVAL = 200; // Update interval in milliseconds
+    let postViewStates = {};
+    let timerInterval;
+    let isSurveyCompleted = false;
+
+    const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
+
+    const fixedPosts = [
+    {
+        username: "cats_golden",
+        profilePic: baseUrl + "post/2.jpg",
+        postImage: baseUrl + "2.jpg",
+        caption: "Loving nature."
+    },
+    {
+        username: "greenly",
+        profilePic: baseUrl + "post/3.jpg",
+        postImage: baseUrl + "3.png",
+        caption: "Meet our new seasonal salad. It's a summer delight that you don't want to miss!"
+    },
+    {
+        username: "borcelle_ig",
+        profilePic: baseUrl + "post/4.png",
+        postImage: baseUrl + "4.png",
+        caption: "Oak Bedside Table. #simple #elegant"
+    },
+    {
+        username: "saadl.bike",
+        profilePic: baseUrl + "post/5.png",
+        postImage: baseUrl + "5.jpg",
+        caption: '"It\'s not the bike, it\'s the rider" #cycling #cyclinglife #cyclingshots'
+    },
+    {
+        username: "beautee.weekly",
+        profilePic: baseUrl + "post/6.png",
+        postImage: baseUrl + "6.jpg",
+        caption: "Purple is the theme of the week. #beautyfavorites #makeup #purplelove"
+    },
+    {
+        username: "getawaydotcom",
+        profilePic: baseUrl + "post/7.png",
+        postImage: baseUrl + "7.jpg",
+        caption: "Book your summer getaway today and get 25% off. #summersale"
+    },
+    {
+        id: "reads.by.rio",
+        username: "reads.by.rio",
+        profilePic: baseUrl + "post/10.jpg",
+        postImage: baseUrl + "10.jpg",
+        caption: "Tis the thriller/mystery season of the year. Check out my list..."
+    },
+    {
+        id: "memebot.19",
+        username: "Memebot.19",
+        profilePic: baseUrl + "post/8.jpg",
+        postImage: baseUrl + "8.png",
+        caption: "Tag that friend! #relatablememes #schoolmeme"
+    },
+    {
+        id: "teaNature",
+        username: "teaNature",
+        profilePic: baseUrl + "post/9.jpg",
+        postImage: baseUrl + "9.jpg",
+        caption: "Peach Oolong Tea 🍑 #homemade"
+    }
+];
+
+const variablePosts = [
+    {
+        id: "1-fat-noai.JPG",
+        username: "juliastarlily",
+        profilePic: baseUrl + "post/1-fat.JPG",
+        postImage: baseUrl + "1-fat.JPG",
+        caption: "So excited to be the first influencer for #Alignyoga. Absolutely adore this outfit.",
+        isAI: false
+    },
+    {
+        id: "1-fat-ai.JPG",
+        username: "juliastarlily",
+        profilePic: baseUrl + "post/1-fat.JPG",
+        postImage: baseUrl + "1-fat.JPG",
+        caption: "So excited to be the first AI influencer for #Alignyoga. Absolutely adore this outfit.",
+        isAI: true
+    },
+    {
+        id: "1-thin-noai.JPG",
+        username: "juliastarlily",
+        profilePic: baseUrl + "post/1-thin.png",
+        postImage: baseUrl + "1-thin.JPG",
+        caption: "So excited to be the first influencer for #Alignyoga. Absolutely adore this outfit.",
+        isAI: false
+    },
+    {
+        id: "1-thin-ai.JPG",
+        username: "juliastarlily",
+        profilePic: baseUrl + "post/1-thin.png",
+        postImage: baseUrl + "1-thin.JPG",
+        caption: "So excited to be the first AI influencer for #Alignyoga. Absolutely adore this outfit.",
+        isAI: true
+    }
+];
+
+    function showPage(pageId) {
+        document.getElementById('user-form').style.display = 'none';
+        document.getElementById('posts').style.display = 'none';
+        document.getElementById('thank-you').style.display = 'none';
+        document.querySelector('.footer').style.display = 'none';
+
+        document.getElementById(pageId).style.display = 'block';
+        if (pageId === 'posts') {
+            document.querySelector('.footer').style.display = 'flex';
+        }
+    }
+
+    function generatePosts() {
+        const posts = fixedPosts.map(post => ({...post, id: post.username}));
+        const randomVariablePost = variablePosts[Math.floor(Math.random() * variablePosts.length)];
+        posts.unshift(randomVariablePost);
+        return shuffleArray(posts);
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function createPostElement(post) {
+        const postElement = document.createElement('div');
+        postElement.className = 'post';
+        postElement.dataset.postId = post.id; 
+        const instagramBlue = '#00376b';
+
+        const formattedCaption = post.caption.replace(/#(\w+)/g, `<span style="color: ${instagramBlue};">#$1</span>`);
+        postElement.innerHTML = `
+            <div class="post-header">
+                <img src="${post.profilePic}" alt="${post.username}">
+                <div>
+                    <div class="post-username">${post.username}</div>
+                    ${post.isAI ? '<div class="post-ai-label"><span class="info-icon">&#8505;</span> AI-generated content</div>' : ''}
+                </div>
+                <div class="post-options">•••</div>
+            </div>
+            <div class="post-image-container">
+                <img class="post-image" src="${post.postImage}" alt="Post by ${post.username}">
+                <div class="like-overlay">
+                    <img src="https://img.icons8.com/ios-filled/50/ff0000/hearts.png" alt="Like">
+                </div>
+            </div>
+            <div class="post-actions">
+                <button class="like-button"><img src="https://img.icons8.com/ios/50/000000/hearts--v1.png" alt="Like"></button>
+                <button><img src="https://img.icons8.com/ios/50/000000/comments--v1.png" alt="Comment"></button>
+                <button><img src="https://img.icons8.com/ios/50/000000/sent--v1.png" alt="Share"></button>
+            </div>
+            <div class="post-likes">0 likes</div>
+            <div class="post-caption"><strong>${post.username}</strong> ${formattedCaption}</div>
+        `;
+
+        const postImageContainer = postElement.querySelector('.post-image-container');
+        let lastTap = 0;
+
+        postImageContainer.addEventListener('click', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                likePost(post.id);
+                showLikeOverlay(this);
+                e.preventDefault();
+            }
+            lastTap = currentTime;
+        });
+
+        const likeButton = postElement.querySelector('.like-button');
+        likeButton.addEventListener('click', function() {
+            likePost(post.id);
+        });
+        return postElement;
+    }
+
+    function likePost(postId) {
+        if (isSurveyCompleted) return;
+        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
+        const likeButton = post.querySelector('.like-button img');
+        const likesElement = post.querySelector('.post-likes');
+        let likes = parseInt(likesElement.textContent);
+
+        if (likeButton.src.includes('ios/50')) {
+            likeButton.src = 'https://img.icons8.com/ios-filled/50/ff0000/hearts.png';
+            likes++;
+        } else {
+            likeButton.src = 'https://img.icons8.com/ios/50/000000/hearts--v1.png';
+            likes--;
+        }
+
+        likesElement.textContent = `${likes} likes`;
+
+        updatePostData(postId, likes, getPostViewTime(postId));
+    }
+
+    function showLikeOverlay(container) {
+        const overlay = container.querySelector('.like-overlay');
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 1500);
+    }
+
+    function loadPosts() {
+        const postsContainer = document.getElementById('posts');
+        postsContainer.innerHTML = '';
+
+        const posts = generatePosts();
+        posts.forEach((post) => {
+            const postElement = createPostElement(post);
+            postsContainer.appendChild(postElement);
+            postViewTimes[post.id] = Date.now();
+        });
+
+        startTime = Date.now();
+        console.log('Starting timer...');
+        timerInterval = setInterval(checkTimeAndSubmit, 1000);
+    }
+
+    function checkTimeAndSubmit() {
+        if (isSurveyCompleted) return;
+
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - startTime;
+        console.log(`Elapsed time: ${elapsedTime / 1000} seconds`);
+
+        if (elapsedTime >= timeLimit) {
+            console.log('Time limit reached, submitting survey...');
+            clearInterval(timerInterval);
+            submitSurvey();
+        }
+    }
+
+    function getFixedUIDimensions() {
+        const header = document.querySelector('header');
+        const footer = document.querySelector('.footer');
+
+        return {
+            headerHeight: header ? header.offsetHeight : 0,
+            footerHeight: footer ? footer.offsetHeight : 0
+        };
+    }
+
+    function getActualViewport() {
+        const { headerHeight, footerHeight } = getFixedUIDimensions();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+
+        return {
+            top: headerHeight,
+            bottom: windowHeight - footerHeight,
+            left: 0,
+            right: windowWidth,
+            height: windowHeight - headerHeight - footerHeight,
+            width: windowWidth
+        };
+    }
+
+    function getPostVisibility(post) {
+        const rect = post.getBoundingClientRect();
+        const viewport = getActualViewport();
+
+        const visibleTop = Math.max(viewport.top, rect.top);
+        const visibleBottom = Math.min(viewport.bottom, rect.bottom);
+        const visibleLeft = Math.max(viewport.left, rect.left);
+        const visibleRight = Math.min(viewport.right, rect.right);
+
+        const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+        const totalArea = rect.width * rect.height;
+        const visibleArea = visibleWidth * visibleHeight;
+        const visibilityPercentage = (visibleArea / totalArea) * 100;
+
+        return {
+            isVisible: visibilityPercentage >= VISIBILITY_THRESHOLD,
+            visibilityPercentage: visibilityPercentage
+        };
+    }
+
+    function updateViewTimes() {
+        if (isSurveyCompleted) return;
+
+        const posts = document.querySelectorAll('.post');
+        const currentTime = Date.now();
+
+        posts.forEach((post) => {
+            const postId = post.dataset.postId;
+            const visibility = getPostVisibility(post);
+
+            if (!postViewStates[postId]) {
+                postViewStates[postId] = {
+                    lastUpdateTime: null,
+                    totalViewTime: 0,
+                    viewCount: 0,
+                    isViewing: false,
+                    viewStartTime: null
+                };
+            }
+
+            const state = postViewStates[postId];
+
+            if (visibility.isVisible) {
+                if (!state.isViewing) {
+                    state.isViewing = true;
+                    state.viewStartTime = currentTime;
+                } else if (currentTime - state.viewStartTime >= UPDATE_INTERVAL) {
+                    const viewDuration = (currentTime - (state.lastUpdateTime || state.viewStartTime)) / 1000;
+                    state.totalViewTime += viewDuration * (visibility.visibilityPercentage / 100);
+                    state.lastUpdateTime = currentTime;
+
+                    if (state.viewCount === 0) {
+                        state.viewCount = 1;
+                    }
+                }
+            } else if (state.isViewing) {
+                const finalViewDuration = (currentTime - (state.lastUpdateTime || state.viewStartTime)) / 1000;
+                if (finalViewDuration >= UPDATE_INTERVAL / 1000) {
+                    state.totalViewTime += finalViewDuration * (visibility.visibilityPercentage / 100);
+                }
+                state.isViewing = false;
+                state.viewStartTime = null;
+                state.lastUpdateTime = null;
+
+                updatePostData(postId, parseInt(post.querySelector('.post-likes').textContent), state.totalViewTime);
+            }
+
+            console.log(`Post ${postId}: Visibility ${visibility.visibilityPercentage.toFixed(2)}%, Total View Time: ${state.totalViewTime.toFixed(2)}s, View Count: ${state.viewCount}`);
+        });
+    }
+
+    function updatePostData(postId, likes, viewTime) {
+        if (isSurveyCompleted) return;
+
+        console.log(`Updating post data for post ${postId}: likes=${likes}, viewTime=${viewTime.toFixed(2)}`);
+
+        if (!postDataCache[postId]) {
+            postDataCache[postId] = {
+                id: postId,
+                totalViewTime: 0,
+                viewCount: 0,
+                likes: likes,
+                lastUpdateTime: Date.now()
+            };
+        }
+
+        const postData = postDataCache[postId];
+
+        postData.totalViewTime = viewTime;
+        postData.viewCount = postViewStates[postId] ? postViewStates[postId].viewCount : 1;
+        postData.likes = likes;
+
+        console.log(`Updated post data: `, postData);
+
+        if (Date.now() - postData.lastUpdateTime > 10000 || postData.totalViewTime > 30) {
+            console.log(`Sending update for post ${postId}`);
+            sendPostDataUpdate(postId);
+        }
+    }
+
+    function sendPostDataUpdate(postId) {
+        if (isSurveyCompleted) return;
+
+        const postData = postDataCache[postId];
+        if (!postData) return;
+
+        const userDocRef = db.collection('users').doc(userData.docId);
+
+        userDocRef.get().then((doc) => {
+            if (doc.exists) {
+                const currentPosts = doc.data().posts || [];
+                const existingPostIndex = currentPosts.findIndex(post => post.id === postData.id);
+
+                let updatedPosts;
+                const currentTime = new Date().toISOString();
+
+                if (existingPostIndex !== -1) {
+                    updatedPosts = [...currentPosts];
+                    updatedPosts[existingPostIndex] = {
+                        ...updatedPosts[existingPostIndex],
+                        likes: postData.likes,
+                        totalViewTime: postData.totalViewTime,
+                        viewCount: postData.viewCount,
+                        lastUpdateTime: currentTime
+                    };
+                } else {
+                    updatedPosts = [
+                        ...currentPosts,
+                        {
+                            id: postData.id,
+                            likes: postData.likes,
+                            totalViewTime: postData.totalViewTime,
+                            viewCount: postData.viewCount,
+                            lastUpdateTime: currentTime
+                        }
+                    ];
+                }
+
+                return userDocRef.update({ posts: updatedPosts });
+            } else {
+                console.error("User document does not exist!");
+                return Promise.reject("User document does not exist");
+            }
+        }).then(() => {
+            postData.lastUpdateTime = Date.now();
+            console.log("Post data successfully updated");
+        }).catch((error) => {
+            console.error("Error updating post data:", error);
+        });
+    }
+
+    function handleScroll() {
+        if (!isSurveyCompleted) {
+            updateViewTimes();
+        }
+    }
+
+    function beforeUnloadHandler() {
+        if (!isSurveyCompleted) {
+            Object.keys(postDataCache).forEach(sendPostDataUpdate);
+        }
+    }
+
+    function throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        }
+    }
+
+    window.addEventListener('scroll', throttle(handleScroll, 100));
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+
+    async function submitSurvey() {
+        if (isSurveyCompleted) return;
+
+        console.log('Submitting survey...');
+        clearInterval(timerInterval);
+        updateViewTimes();
+
+        Object.keys(postViewStates).forEach(postId => {
+            const state = postViewStates[postId];
+            if (state.totalViewTime > 0) {
+                const post = document.querySelector(`.post[data-post-id="${postId}"]`);
+                if (post) {
+                    const likes = parseInt(post.querySelector('.post-likes').textContent);
+                    updatePostData(postId, likes, state.totalViewTime);
+                }
+            }
+        });
+
+        await Promise.all(Object.keys(postDataCache).map(sendPostDataUpdate));
+        try {
+            await db.collection('users').doc(userData.docId).update({
+                surveyCompleted: true,
+                totalTime: (Date.now() - startTime) / 1000
+            });
+            console.log('Survey submitted successfully');
+            isSurveyCompleted = true;
+            cleanupAfterSurvey();
+            showPage('thank-you');
+        } catch (error) {
+            console.error("Error submitting survey:", error);
+            alert('Error submitting data. Your responses may not have been saved.');
+        }
+    }
+
+    function cleanupAfterSurvey() {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+
+        clearInterval(timerInterval);
+
+        postViewTimes = {};
+        postViewStates = {};
+        postDataCache = {};
+
+        const postsContainer = document.getElementById('posts');
+        postsContainer.innerHTML = '';
+
+        console.log('Cleanup completed after survey submission');
+    }
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+        showPage('user-form');
+
+        document.getElementById('survey-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            userData = {
+                name: document.getElementById('name').value,
+                studentId: document.getElementById('studentId').value,
+                gender: document.getElementById('gender').value,
+                age: parseInt(document.getElementById('age').value),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                posts: []
+            };
+
+            try {
+                const docRef = await db.collection('users').add(userData);
+                userData.docId = docRef.id;
+                showPage('posts');
+                loadPosts();
+            } catch (error) {
+                console.error("Error submitting data:", error);
+                alert('Error logging in. Please try again.');
+            }
+        });
+    });
+
+    // Console log for debugging
+    console.log('JavaScript loaded and running');
+    </script>
+</body>
+</html>
