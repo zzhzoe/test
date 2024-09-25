@@ -69,6 +69,9 @@ const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
 const THRESHOLD_TIME = 500; // 设置阈值时间为500毫秒
 let postViewStates = {};
 let timerInterval;
+ const VISIBILITY_THRESHOLD = 50; // 50% 可见性阈值
+const MIN_VIEW_TIME = 500; // 最小查看时间阈值（毫秒）
+const UPDATE_INTERVAL = 500; // 更新间隔（毫秒）
 
 const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
 const fixedPosts = [
@@ -307,129 +310,65 @@ function updateViewTimes() {
     const viewportHeight = window.innerHeight;
     const currentTime = Date.now();
 
-    posts.forEach((post) => {
+    posts.forEach((post, index) => {
         const postId = post.dataset.postId;
         const rect = post.getBoundingClientRect();
-        const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
-        const visibleArea = visibleHeight > 0 ? (visibleHeight / rect.height) * 100 : 0;
-
-        if (visibleArea > 20) {
-            if (!postViewStates[postId]) {
-                postViewStates[postId] = {
-                    startTime: currentTime,
-                    actualStartTime: null,
-                    lastUpdateTime: currentTime
-                };
-            } else {
-                const state = postViewStates[postId];
-                if (!state.actualStartTime && currentTime - state.startTime >= THRESHOLD_TIME) {
-                    state.actualStartTime = currentTime;
-                }
-                if (state.actualStartTime) {
-                    const viewTime = (currentTime - state.lastUpdateTime) / 1000;
-                    updatePostData(postId, parseInt(post.querySelector('.post-likes').textContent), viewTime);
-                    state.lastUpdateTime = currentTime;
-                }
-            }
-        } else if (postViewStates[postId]) {
-            const state = postViewStates[postId];
-            if (state.actualStartTime) {
-                const finalViewTime = (currentTime - state.lastUpdateTime) / 1000;
-                updatePostData(postId, parseInt(post.querySelector('.post-likes').textContent), finalViewTime);
-            }
-            delete postViewStates[postId];
-        }
-    });
-}
-
-function updatePostData(postId, likes, viewTime) {
-    console.log(`Updating post data for post ${postId}: likes=${likes}, viewTime=${viewTime}`);
-
-    if (!postDataCache[postId]) {
-        postDataCache[postId] = {
-            id: postId,
-            totalViewTime: 0,
-            viewCount: 0,
-            likes: likes,
-            lastUpdateTime: Date.now()
-        };
-    }
-
-    const postData = postDataCache[postId];
-
-    postData.totalViewTime += viewTime;
-    postData.viewCount++;
-    postData.likes = likes;
-
-    console.log(`Updated post data: `, postData);
-
-    if (Date.now() - postData.lastUpdateTime > 10000 || postData.totalViewTime > 30) {
-        console.log(`Sending update for post ${postId}`);
-        sendPostDataUpdate(postId);
-    }
-}
-
-function sendPostDataUpdate(postId) {
-    const postData = postDataCache[postId];
-    if (!postData) return;
-
-    const userDocRef = db.collection('users').doc(userData.docId);
-
-    userDocRef.get().then((doc) => {
-        if (doc.exists) {
-            const currentPosts = doc.data().posts || [];
-            const existingPostIndex = currentPosts.findIndex(post => post.id === postData.id);
-
-            let updatedPosts;
-            const currentTime = new Date().toISOString(); // Use ISO string instead of serverTimestamp
-
-            if (existingPostIndex !== -1) {
-                // Update existing post data
-                updatedPosts = [...currentPosts];
-                updatedPosts[existingPostIndex] = {
-                    ...updatedPosts[existingPostIndex],
-                    likes: postData.likes,
-                    totalViewTime: (updatedPosts[existingPostIndex].totalViewTime || 0) + postData.totalViewTime,
-                    viewCount: (updatedPosts[existingPostIndex].viewCount || 0) + postData.viewCount,
-                    lastUpdateTime: currentTime
-                };
-            } else {
-                // Add new post data
-                updatedPosts = [
-                    ...currentPosts,
-                    {
-                        id: postData.id,
-                        likes: postData.likes,
-                        totalViewTime: postData.totalViewTime,
-                        viewCount: postData.viewCount,
-                        lastUpdateTime: currentTime
-                    }
-                ];
-            }
-
-            return userDocRef.update({ posts: updatedPosts });
+        
+        // 计算当前帖子的顶部
+        const postTop = rect.top;
+        
+        // 计算当前帖子的底部（包括到下一个帖子的空间）
+        let postBottom;
+        if (index < posts.length - 1) {
+            const nextPost = posts[index + 1];
+            const nextRect = nextPost.getBoundingClientRect();
+            postBottom = nextRect.top;
         } else {
-            console.error("User document does not exist!");
-            return Promise.reject("User document does not exist");
+            postBottom = rect.bottom;
         }
-    }).then(() => {
-        postData.totalViewTime = 0;
-        postData.viewCount = 0;
-        postData.lastUpdateTime = Date.now();
-        console.log("Post data successfully updated");
-    }).catch((error) => {
-        console.error("Error updating post data:", error);
+
+        const postHeight = postBottom - postTop;
+        const visibleHeight = Math.min(postBottom, viewportHeight) - Math.max(postTop, 0);
+        const visiblePercentage = (visibleHeight / postHeight) * 100;
+
+        updatePostViewState(postId, visiblePercentage, currentTime);
     });
 }
-        // Event listeners
-window.addEventListener('scroll', handleScroll);
-window.addEventListener('beforeunload', () => {
-    Object.keys(postDataCache).forEach(sendPostDataUpdate);
-});
 
-function handleScroll() {
-    updateViewTimes();
+function updatePostViewState(postId, visiblePercentage, currentTime) {
+    if (visiblePercentage > VISIBILITY_THRESHOLD) {
+        if (!postViewStates[postId]) {
+            postViewStates[postId] = {
+                startTime: currentTime,
+                lastUpdateTime: currentTime,
+                totalViewTime: 0
+            };
+        } else {
+            const state = postViewStates[postId];
+            const viewDuration = currentTime - state.lastUpdateTime;
+            state.totalViewTime += viewDuration;
+            state.lastUpdateTime = currentTime;
+        }
+    } else if (postViewStates[postId]) {
+        finalizePostView(postId, currentTime);
+    }
 }
+
+function finalizePostView(postId, currentTime) {
+    const state = postViewStates[postId];
+    const finalViewDuration = currentTime - state.lastUpdateTime;
+    state.totalViewTime += finalViewDuration;
+
+    if (state.totalViewTime >= MIN_VIEW_TIME) {
+        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
+        const likes = parseInt(post.querySelector('.post-likes').textContent);
+        updatePostData(postId, likes, state.totalViewTime / 1000);
+    }
+
+    delete postViewStates[postId];
+}
+
+setInterval(updateViewTimes, UPDATE_INTERVAL);
 
 async function submitSurvey() {
     console.log('Submitting survey...');
