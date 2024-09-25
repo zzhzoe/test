@@ -44,38 +44,36 @@
         </div>
     </div>
 
-    <script>
-    // Firebase configuration
+    <script src="app.js"></script>
     const firebaseConfig = {
-        apiKey: "AIzaSyC13M47F_4HcP5Z0KPvnPdRs7FCzfwoKus",
-        authDomain: "research-project-0801.firebaseapp.com",
-        projectId: "research-project-0801",
-        storageBucket: "research-project-0801.appspot.com",
-        messagingSenderId: "655922410105",
-        appId: "1:655922410105:web:b0919370054af912261aa8",
-        measurementId: "G-PX7PE1V6S3"
-    };
+    apiKey: "AIzaSyC13M47F_4HcP5Z0KPvnPdRs7FCzfwoKus",
+    authDomain: "research-project-0801.firebaseapp.com",
+    projectId: "research-project-0801",
+    storageBucket: "research-project-0801.appspot.com",
+    messagingSenderId: "655922410105",
+    appId: "1:655922410105:web:b0919370054af912261aa8",
+    measurementId: "G-PX7PE1V6S3"
+};
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    // Global variables
-    let currentPage = 'user-form';
-    let userData = {};
-    let postViewTimes = {};
-    let startTime;
-    let postDataCache = {};
-    const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
-    const VISIBILITY_THRESHOLD = 50; // Percentage of post that needs to be visible
-    const UPDATE_INTERVAL = 200; // Update interval in milliseconds
-    let postViewStates = {};
-    let timerInterval;
-    let isSurveyCompleted = false;
+/ Global variables
+let currentPage = 'user-form';
+let userData = {};
+let postViewTimes = {};
+let startTime;
+let postDataCache = {};
+const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
+const VISIBILITY_THRESHOLD = 50; // Percentage of post that needs to be visible
+const UPDATE_INTERVAL = 200; // Update interval in milliseconds
+let postViewStates = {};
+let timerInterval;
+let isSurveyCompleted = false;
 
-    const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
-    
-   const fixedPosts = [
+const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
+ const fixedPosts = [
     {
         username: "cats_golden",
         profilePic: baseUrl + "post/2.jpg",
@@ -169,7 +167,8 @@ const variablePosts = [
         isAI: true
     }
 ];
-   // Function to show different pages
+
+    // Function to show different pages
 function showPage(pageId) {
     document.getElementById('user-form').style.display = 'none';
     document.getElementById('posts').style.display = 'none';
@@ -203,7 +202,7 @@ function shuffleArray(array) {
 function createPostElement(post) {
     const postElement = document.createElement('div');
     postElement.className = 'post';
-    postElement.dataset.postId = post.id; 
+    postElement.dataset.postId = post.id;
     const instagramBlue = '#00376b';
 
     const formattedCaption = post.caption.replace(/#(\w+)/g, `<span style="color: ${instagramBlue};">#$1</span>`);
@@ -231,6 +230,7 @@ function createPostElement(post) {
         <div class="post-caption"><strong>${post.username}</strong> ${formattedCaption}</div>
     `;
 
+    // Add event listeners for double-tap like and like button
     const postImageContainer = postElement.querySelector('.post-image-container');
     let lastTap = 0;
 
@@ -249,10 +249,10 @@ function createPostElement(post) {
     likeButton.addEventListener('click', function() {
         likePost(post.id);
     });
+
     return postElement;
 }
-
-// Function to handle post liking
+    // Function to handle post liking
 function likePost(postId) {
     if (isSurveyCompleted) return;
 
@@ -418,7 +418,7 @@ function updateViewTimes() {
     });
 }
 
-// Function to update post data
+            // Function to update post data
 function updatePostData(postId, likes, viewTime) {
     if (isSurveyCompleted) return;
 
@@ -442,10 +442,8 @@ function updatePostData(postId, likes, viewTime) {
 
     console.log(`Updated post data: `, postData);
 
-    if (Date.now() - postData.lastUpdateTime > 10000 || postData.totalViewTime > 30) {
-        console.log(`Sending update for post ${postId}`);
-        sendPostDataUpdate(postId);
-    }
+    // Send update to Firebase more frequently
+    sendPostDataUpdate(postId);
 }
 
 // Function to send post data update to Firebase
@@ -540,6 +538,7 @@ async function submitSurvey() {
     clearInterval(timerInterval);
     updateViewTimes();
 
+    // Ensure all post data is up to date
     Object.keys(postViewStates).forEach(postId => {
         const state = postViewStates[postId];
         if (state.totalViewTime > 0) {
@@ -551,7 +550,9 @@ async function submitSurvey() {
         }
     });
 
+    // Wait for all updates to complete
     await Promise.all(Object.keys(postDataCache).map(sendPostDataUpdate));
+
     try {
         await db.collection('users').doc(userData.docId).update({
             surveyCompleted: true,
@@ -614,8 +615,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Console log for debugging
 console.log('JavaScript loaded and running');
-
-   
-    </script>
 </body>
 </html>
