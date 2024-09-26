@@ -11,7 +11,7 @@
 <body>
     <div id="app">
         <div id="user-form">
-           <img src="https://zzhzoe.github.io/InsWebsite/post_images/IMG_0619.PNG" alt="Instagram" class="instagram-logo">
+           <img src="https://zzhzoe.github.io/InsWebsite/post_images/c7890482ef886ead7507cf0ff4624481.PNG" alt="Instagram" class="instagram-logo">
             <form id="survey-form">
                 <input type="text" id="name" placeholder="NickName" required>
                 <input type="text" id="studentId" placeholder="Student ID" required>
@@ -44,92 +44,104 @@
         </div>
     </div>
 
-    <script src="app.js">
+    <script>
+    // Firebase configuration
     const firebaseConfig = {
-    apiKey: "AIzaSyC13M47F_4HcP5Z0KPvnPdRs7FCzfwoKus",
-    authDomain: "research-project-0801.firebaseapp.com",
-    projectId: "research-project-0801",
-    storageBucket: "research-project-0801.appspot.com",
-    messagingSenderId: "655922410105",
-    appId: "1:655922410105:web:b0919370054af912261aa8",
-    measurementId: "G-PX7PE1V6S3"
-};
+        apiKey: "AIzaSyC13M47F_4HcP5Z0KPvnPdRs7FCzfwoKus",
+        authDomain: "research-project-0801.firebaseapp.com",
+        projectId: "research-project-0801",
+        storageBucket: "research-project-0801.appspot.com",
+        messagingSenderId: "655922410105",
+        appId: "1:655922410105:web:b0919370054af912261aa8",
+        measurementId: "G-PX7PE1V6S3"
+    };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-/ Global variables
-let currentPage = 'user-form';
-let userData = {};
-let postViewTimes = {};
-let startTime;
-let postDataCache = {};
-const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
-const VISIBILITY_THRESHOLD = 50; // Percentage of post that needs to be visible
-const UPDATE_INTERVAL = 200; // Update interval in milliseconds
-let postViewStates = {};
-let timerInterval;
-let isSurveyCompleted = false;
+    // Global variables
+    let currentPage = 'user-form';
+    let userData = {};
+    let postViewTimes = {};
+    let startTime;
+    let postDataCache = {};
+    const timeLimit = 3 * 60 * 1000; // 3 minutes in milliseconds
+    const VISIBILITY_THRESHOLD = 50; // Percentage of post that needs to be visible
+    const UPDATE_INTERVAL = 200; // Update interval in milliseconds
+    let postViewStates = {};
+    let timerInterval;
+    let isSurveyCompleted = false;
 
-const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
- const fixedPosts = [
+    const baseUrl = "https://zzhzoe.github.io/InsWebsite/post_images/";
+    
+   const fixedPosts = [
     {
         username: "cats_golden",
         profilePic: baseUrl + "post/2.jpg",
         postImage: baseUrl + "2.jpg",
-        caption: "Loving nature."
+        caption: "Loving nature.",
+        firstLiker: "britishglory"
+
     },
     {
         username: "greenly",
         profilePic: baseUrl + "post/3.jpg",
         postImage: baseUrl + "3.png",
-        caption: "Meet our new seasonal salad. It's a summer delight that you don't want to miss!"
+        caption: "Meet our new seasonal salad. It's a summer delight that you don't want to miss!",
+        firstLiker: "aveta_ig"
     },
     {
         username: "borcelle_ig",
         profilePic: baseUrl + "post/4.png",
         postImage: baseUrl + "4.png",
-        caption: "Oak Bedside Table. #simple #elegant"
+        caption: "Oak Bedside Table. #simple #elegant",
+        firstLiker: "gstlhh"
     },
     {
         username: "saadl.bike",
         profilePic: baseUrl + "post/5.png",
         postImage: baseUrl + "5.jpg",
-        caption: '"It\'s not the bike, it\'s the rider" #cycling #cyclinglife #cyclingshots'
+        caption: '"It\'s not the bike, it\'s the rider" #cycling #cyclinglife #cyclingshots',
+        firstLiker: "igobyj"
     },
     {
         username: "beautee.weekly",
         profilePic: baseUrl + "post/6.png",
         postImage: baseUrl + "6.jpg",
-        caption: "Purple is the theme of the week. #beautyfavorites #makeup #purplelove"
+        caption: "Purple is the theme of the week. #beautyfavorites #makeup #purplelove",
+        firstLiker: "_millie9"
     },
     {
         username: "getawaydotcom",
         profilePic: baseUrl + "post/7.png",
         postImage: baseUrl + "7.jpg",
-        caption: "Book your summer getaway today and get 25% off. #summersale"
+        caption: "Book your summer getaway today and get 25% off. #summersale",
+        firstLiker: "lilshay"
     },
     {
         id: "reads.by.rio",
         username: "reads.by.rio",
         profilePic: baseUrl + "post/10.jpg",
         postImage: baseUrl + "10.jpg",
-        caption: "Tis the thriller/mystery season of the year. Check out my list..."
+        caption: "Tis the thriller/mystery season of the year. Check out my list...",
+        firstLiker: "foodie123"
     },
     {
         id: "memebot.19",
         username: "Memebot.19",
         profilePic: baseUrl + "post/8.jpg",
         postImage: baseUrl + "8.png",
-        caption: "Tag that friend! #relatablememes #schoolmeme"
+        caption: "Tag that friend! #relatablememes #schoolmeme",
+        firstLiker: "balanced_bites"
     },
     {
         id: "teaNature",
         username: "teaNature",
         profilePic: baseUrl + "post/9.jpg",
         postImage: baseUrl + "9.jpg",
-        caption: "Peach Oolong Tea 🍑 #homemade"
+        caption: "Peach Oolong Tea 🍑 #homemade",
+        firstLiker: "oscar43"
     }
 ];
 
@@ -140,7 +152,8 @@ const variablePosts = [
         profilePic: baseUrl + "post/1-fat.JPG",
         postImage: baseUrl + "1-fat.JPG",
         caption: "So excited to be the first influencer for #Alignyoga. Absolutely adore this outfit.",
-        isAI: false
+        isAI: false,
+        firstLiker: "tiffany_top"
     },
     {
         id: "1-fat-ai.JPG",
@@ -148,7 +161,8 @@ const variablePosts = [
         profilePic: baseUrl + "post/1-fat.JPG",
         postImage: baseUrl + "1-fat.JPG",
         caption: "So excited to be the first AI influencer for #Alignyoga. Absolutely adore this outfit.",
-        isAI: true
+        isAI: true,
+        firstLiker: "tiffany_top"
     },
     {
         id: "1-thin-noai.JPG",
@@ -156,7 +170,8 @@ const variablePosts = [
         profilePic: baseUrl + "post/1-thin.png",
         postImage: baseUrl + "1-thin.JPG",
         caption: "So excited to be the first influencer for #Alignyoga. Absolutely adore this outfit.",
-        isAI: false
+        isAI: false,
+        firstLiker: "tiffany_top"
     },
     {
         id: "1-thin-ai.JPG",
@@ -164,11 +179,11 @@ const variablePosts = [
         profilePic: baseUrl + "post/1-thin.png",
         postImage: baseUrl + "1-thin.JPG",
         caption: "So excited to be the first AI influencer for #Alignyoga. Absolutely adore this outfit.",
-        isAI: true
+        isAI: true,
+        firstLiker: "tiffany_top"
     }
 ];
-
-    // Function to show different pages
+   // Function to show different pages
 function showPage(pageId) {
     document.getElementById('user-form').style.display = 'none';
     document.getElementById('posts').style.display = 'none';
@@ -202,7 +217,7 @@ function shuffleArray(array) {
 function createPostElement(post) {
     const postElement = document.createElement('div');
     postElement.className = 'post';
-    postElement.dataset.postId = post.id;
+    postElement.dataset.postId = post.id; 
     const instagramBlue = '#00376b';
 
     const formattedCaption = post.caption.replace(/#(\w+)/g, `<span style="color: ${instagramBlue};">#$1</span>`);
@@ -222,15 +237,15 @@ function createPostElement(post) {
             </div>
         </div>
         <div class="post-actions">
-            <button class="like-button"><img src="https://img.icons8.com/ios/50/000000/hearts--v1.png" alt="Like"></button>
-            <button><img src="https://img.icons8.com/ios/50/000000/comments--v1.png" alt="Comment"></button>
-            <button><img src="https://img.icons8.com/ios/50/000000/sent--v1.png" alt="Share"></button>
+            <button class="action-button like-button"><img src="https://img.icons8.com/ios/50/000000/hearts--v1.png" alt="Like"></button>
+            <button class="action-button"><img src="https://img.icons8.com/ios/50/000000/comments--v1.png" alt="Comment"></button>
+            <button class="action-button"><img src="https://img.icons8.com/ios/50/000000/sent--v1.png" alt="Share"></button>
+            <button class="action-button bookmark-button"><img src="https://img.icons8.com/ios/50/000000/bookmark-ribbon--v1.png" alt="Save"></button>
         </div>
-        <div class="post-likes">0 likes</div>
-        <div class="post-caption"><strong>${post.username}</strong> ${formattedCaption}</div>
+        <div class="post-likes">Liked by <strong>${post.firstLiker}</strong> and others</div>
+        <div class="post-caption"><strong>${post.username}</strong> ${post.caption}</div>
     `;
 
-    // Add event listeners for double-tap like and like button
     const postImageContainer = postElement.querySelector('.post-image-container');
     let lastTap = 0;
 
@@ -249,10 +264,10 @@ function createPostElement(post) {
     likeButton.addEventListener('click', function() {
         likePost(post.id);
     });
-
     return postElement;
 }
-    // Function to handle post liking
+
+// Function to handle post liking
 function likePost(postId) {
     if (isSurveyCompleted) return;
 
@@ -271,7 +286,20 @@ function likePost(postId) {
 
     likesElement.textContent = `${likes} likes`;
 
-    updatePostData(postId, likes, getPostViewTime(postId));
+    // Calculate view time using postViewStates
+    let viewTime = 0;
+    if (postViewStates[postId]) {
+        const state = postViewStates[postId];
+        if (state.isViewing) {
+            // If the post is currently being viewed, calculate the latest view time
+            viewTime = state.totalViewTime + (Date.now() - (state.lastUpdateTime || state.viewStartTime)) / 1000;
+        } else {
+            // If the post is not currently being viewed, use the total accumulated view time
+            viewTime = state.totalViewTime;
+        }
+    }
+
+    updatePostData(postId, likes, viewTime);
 }
 
 // Function to show like overlay
@@ -418,7 +446,7 @@ function updateViewTimes() {
     });
 }
 
-            // Function to update post data
+// Function to update post data
 function updatePostData(postId, likes, viewTime) {
     if (isSurveyCompleted) return;
 
@@ -442,8 +470,10 @@ function updatePostData(postId, likes, viewTime) {
 
     console.log(`Updated post data: `, postData);
 
-    // Send update to Firebase more frequently
-    sendPostDataUpdate(postId);
+    if (Date.now() - postData.lastUpdateTime > 10000 || postData.totalViewTime > 30) {
+        console.log(`Sending update for post ${postId}`);
+        sendPostDataUpdate(postId);
+    }
 }
 
 // Function to send post data update to Firebase
@@ -538,7 +568,6 @@ async function submitSurvey() {
     clearInterval(timerInterval);
     updateViewTimes();
 
-    // Ensure all post data is up to date
     Object.keys(postViewStates).forEach(postId => {
         const state = postViewStates[postId];
         if (state.totalViewTime > 0) {
@@ -550,9 +579,7 @@ async function submitSurvey() {
         }
     });
 
-    // Wait for all updates to complete
     await Promise.all(Object.keys(postDataCache).map(sendPostDataUpdate));
-
     try {
         await db.collection('users').doc(userData.docId).update({
             surveyCompleted: true,
@@ -615,6 +642,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Console log for debugging
 console.log('JavaScript loaded and running');
-        </script>
+
+   
+    </script>
 </body>
 </html>
+  
