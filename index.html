@@ -242,8 +242,8 @@ function createPostElement(post) {
             <button class="action-button"><img src="https://img.icons8.com/ios/50/000000/sent--v1.png" alt="Share"></button>
             <button class="action-button bookmark-button"><img src="https://img.icons8.com/ios/50/000000/bookmark-ribbon--v1.png" alt="Save"></button>
         </div>
-        <div class="post-likes">Liked by <strong>${post.firstLiker}</strong> and others</div>
-        <div class="post-caption"><strong>${post.username}</strong> ${post.caption}</div>
+        <div class="post-likes">Liked by <strong>${post.firstLiker}</strong> and<strong> others</strong></div>
+        <div class="post-caption"><strong>${post.username}</strong> ${formattedCaption}</div>
     `;
 
     const postImageContainer = postElement.querySelector('.post-image-container');
@@ -276,7 +276,7 @@ function likePost(postId) {
     const likesElement = post.querySelector('.post-likes');
     let likes = parseInt(likesElement.textContent);
 
-    const originalLikedByText = likesElement.textContent;
+
     if (likeButton.src.includes('ios/50')) {
         likeButton.src = 'https://img.icons8.com/ios-filled/50/ff0000/hearts.png';
         likes++;
@@ -285,7 +285,6 @@ function likePost(postId) {
         likes--;
     }
 
-    likesElement.textContent = originalLikedByText;
 
     // Calculate view time using postViewStates
     let viewTime = 0;
