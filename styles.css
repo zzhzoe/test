@@ -8,6 +8,9 @@ body {
     max-width: 768px; /* iPad width */
     margin: 0 auto;
     background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 #user-form, #posts, #thank-you {
     padding: 20px;
@@ -18,7 +21,7 @@ h2 {
 }
 .instagram-logo {
     display: block;
-    width: 175px;
+    width: 18rem;
     margin: 22px auto;
 }
 form {
@@ -46,15 +49,36 @@ button {
 }
 .post {
     border-bottom: 1px solid #efefef;
-    margin-bottom: 12px;
+    margin-bottom: 24px; /* Increased from 12px */
+    padding-bottom: 24px; /* Added padding at the bottom */
     max-width: 614px;
     margin-left: auto;
     margin-right: auto;
+    background-color: #ffffff; /* Added white background */
+    border-radius: 8px; /* Added rounded corners */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Added subtle shadow */
 }
 .post-header {
     display: flex;
     align-items: center;
     padding: 14px 16px;
+}
+.post-comments {
+    padding: 0 16px;
+    margin-bottom: 12px;
+}
+
+.view-comments {
+    color: #8e8e8e;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.post-time {
+    color: #8e8e8e;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+    margin-top: 5px;
 }
 .post-header img {
     width: 32px;
@@ -83,24 +107,36 @@ button {
 }
 .post-actions {
     display: flex;
+    justify-content: space-between;
     padding: 6px 16px;
 }
+
+.post-actions-left {
+    display: flex;
+}
+
 .post-actions button {
     background: none;
     border: none;
     padding: 8px 0;
-    margin-right: 16px;
     cursor: pointer;
 }
+
+.post-actions-left button {
+    margin-right: 16px;
+}
+
 .post-actions img {
     width: 24px;
     height: 24px;
 }
-.post-likes {
+
+.post-likes-display{
     font-weight: 600;
     margin: 0 16px 8px;
     color: #262626;
 }
+
 .post-caption {
     margin: 0 16px 8px;
     color: #262626;
@@ -199,4 +235,3 @@ button {
         margin-right: 4px;
         fill: #8e8e8e;
     }
-</style>
