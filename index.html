@@ -219,6 +219,10 @@ function shuffleArray(array) {
     return array;
 }
 
+function getRandomHours() {
+    return Math.floor(Math.random() * 9) + 1; // 生成1到9之间的随机整数
+}
+
 // Function to create post element
 function createPostElement(post) {
     const postElement = document.createElement('div');
@@ -228,6 +232,9 @@ function createPostElement(post) {
     const instagramBlue = '#00376b';
 
     const formattedCaption = post.caption.replace(/#(\w+)/g, `<span style="color: ${instagramBlue};">#$1</span>`);
+
+    const randomHours = getRandomHours();
+
     postElement.innerHTML = `
         <div class="post-header">
             <img src="${post.profilePic}" alt="${post.username}">
@@ -256,7 +263,7 @@ function createPostElement(post) {
         <div class="post-caption"><strong>${post.username}</strong> ${formattedCaption}</div>
         <div class="post-comments">
             <div class="view-comments">View all comments</div>
-            <div class="post-time">4 hours ago</div>
+            <div class="post-time">${randomHours} hour${randomHours !== 1 ? 's' : ''} ago</div>
         </div>
     `;
  
